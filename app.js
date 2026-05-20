@@ -4,8 +4,8 @@
 // with your actual values from Supabase → Project Settings → API
 // ─────────────────────────────────────────────────────────────
 
-const SUPABASE_URL = 'https://wqvqkkwnppeetnrqxiil.supabase.co'
-const SUPABASE_ANON_KEY = 'sb_publishable_G6zM2Ga7Hlf3fpm63GbHYg_eEncJIUh'
+const SUPABASE_URL = 'https://wqvqkkwnppeetnrqxiil.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndxdnFra3ducHBlZXRucnF4aWlsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkyOTMyMTksImV4cCI6MjA5NDg2OTIxOX0.ulDI4MV5YZyeTOfb4B33FVgKVNYjri-nlcNRUtIilB8';
 
 const { createClient } = supabase;
 const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
