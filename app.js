@@ -4,8 +4,8 @@
 // with your actual values from Supabase → Project Settings → API
 // ─────────────────────────────────────────────────────────────
 
-const SUPABASE_URL = 'https://wqvqkkwnppeetnrqxiil.supabase.co'
-const SUPABASE_ANON_KEY = 'sb_publishable_G6zM2Ga7Hlf3fpm63GbHYg_eEncJIUh'
+const SUPABASE_URL = 'YOUR_SUPABASE_URL';
+const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
 
 const { createClient } = supabase;
 const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -17,42 +17,47 @@ let nwChart = null, ieChart = null, allocChart = null;
 let syncTimeout = null;
 
 // ─── INIT ────────────────────────────────────────────────────
+let booting = false; // guard against double boot
+
 window.addEventListener('DOMContentLoaded', () => {
   showScreen('loading');
 
-  // Safety net: if nothing resolves in 6 seconds, fall through to auth screen
-  const loadingTimeout = setTimeout(() => {
-    if (document.getElementById('loading-screen').style.display !== 'none') {
-      showScreen('auth');
-    }
-  }, 6000);
-
-  // onAuthStateChange fires an INITIAL_SESSION event immediately on load
-  // which is faster than awaiting getSession() on slow connections
   db.auth.onAuthStateChange(async (event, session) => {
-    if (event === 'INITIAL_SESSION') {
-      clearTimeout(loadingTimeout);
-      if (session) {
-        await bootApp(session.user);
-      } else {
-        showScreen('auth');
-      }
-    } else if (event === 'SIGNED_IN' && session && !currentUser) {
-      clearTimeout(loadingTimeout);
+    if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session) {
+      if (booting) return; // prevent double boot
+      booting = true;
       await bootApp(session.user);
-    } else if (event === 'SIGNED_OUT') {
-      clearTimeout(loadingTimeout);
+      booting = false;
+    } else if (event === 'SIGNED_OUT' || (event === 'INITIAL_SESSION' && !session)) {
       currentUser = null;
       assets = []; liabilities = []; incomes = []; expenses = [];
       showScreen('auth');
     }
   });
+
+  // Hard fallback — if still on loading screen after 8 seconds, go to auth
+  setTimeout(() => {
+    if (document.getElementById('loading-screen').style.display !== 'none') {
+      showScreen('auth');
+    }
+  }, 8000);
 });
 
 async function bootApp(user) {
   currentUser = user;
   showScreen('loading');
-  await loadAllData();
+
+  // Load data with a 7-second timeout so we never hang forever
+  try {
+    await Promise.race([
+      loadAllData(),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('data timeout')), 7000))
+    ]);
+  } catch (e) {
+    console.warn('Data load timed out or failed — proceeding with empty state:', e.message);
+    assets = []; liabilities = []; incomes = []; expenses = [];
+  }
+
   setupUser(user);
   showScreen('app');
   renderAll();
