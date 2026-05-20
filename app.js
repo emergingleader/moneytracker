@@ -4,8 +4,8 @@
 // with your actual values from Supabase → Project Settings → API
 // ─────────────────────────────────────────────────────────────
 
-const SUPABASE_URL = 'https://wqvqkkwnppeetnrqxiil.supabase.co'
-const SUPABASE_ANON_KEY = 'sb_publishable_G6zM2Ga7Hlf3fpm63GbHYg_eEncJIUh'
+const SUPABASE_URL = 'YOUR_SUPABASE_URL';
+const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
 
 const { createClient } = supabase;
 const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -17,18 +17,31 @@ let nwChart = null, ieChart = null, allocChart = null;
 let syncTimeout = null;
 
 // ─── INIT ────────────────────────────────────────────────────
-window.addEventListener('DOMContentLoaded', async () => {
-  const { data: { session } } = await db.auth.getSession();
-  if (session) {
-    await bootApp(session.user);
-  } else {
-    showScreen('auth');
-  }
+window.addEventListener('DOMContentLoaded', () => {
+  showScreen('loading');
 
+  // Safety net: if nothing resolves in 6 seconds, fall through to auth screen
+  const loadingTimeout = setTimeout(() => {
+    if (document.getElementById('loading-screen').style.display !== 'none') {
+      showScreen('auth');
+    }
+  }, 6000);
+
+  // onAuthStateChange fires an INITIAL_SESSION event immediately on load
+  // which is faster than awaiting getSession() on slow connections
   db.auth.onAuthStateChange(async (event, session) => {
-    if (event === 'SIGNED_IN' && session) {
+    if (event === 'INITIAL_SESSION') {
+      clearTimeout(loadingTimeout);
+      if (session) {
+        await bootApp(session.user);
+      } else {
+        showScreen('auth');
+      }
+    } else if (event === 'SIGNED_IN' && session && !currentUser) {
+      clearTimeout(loadingTimeout);
       await bootApp(session.user);
     } else if (event === 'SIGNED_OUT') {
+      clearTimeout(loadingTimeout);
       currentUser = null;
       assets = []; liabilities = []; incomes = []; expenses = [];
       showScreen('auth');
