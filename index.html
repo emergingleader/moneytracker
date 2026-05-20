@@ -66,11 +66,7 @@ h1,h2,h3{font-family:var(--font-display);font-weight:400}
 .user-menu-item{padding:9px 12px;font-size:13px;border-radius:var(--radius);cursor:pointer;display:flex;align-items:center;gap:8px;color:var(--text2)}
 .user-menu-item:hover{background:var(--bg3)}
 .user-menu-item.danger{color:var(--red)}
-.sync-indicator{font-size:11px;color:var(--text3);display:flex;align-items:center;gap:4px}
-.sync-dot{width:6px;height:6px;border-radius:50%;background:var(--green);flex-shrink:0}
-.sync-dot.syncing{background:var(--amber);animation:pulse 1s infinite}
-.sync-dot.error{background:var(--red)}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
+
 
 /* ── TABS ── */
 .tab-bar{background:var(--bg2);border-bottom:1px solid var(--border);display:flex;overflow-x:auto;scrollbar-width:none;-ms-overflow-style:none;position:sticky;top:61px;z-index:99}
@@ -210,10 +206,7 @@ h1,h2,h3{font-family:var(--font-display);font-weight:400}
   <div class="header">
     <div class="header-logo">Net<span>Worth</span></div>
     <div class="header-right">
-      <div class="sync-indicator" id="sync-indicator">
-        <div class="sync-dot" id="sync-dot"></div>
-        <span id="sync-label">Synced</span>
-      </div>
+
       <div class="header-nw">
         <div class="header-nw-label">Net Worth</div>
         <div class="header-nw-val green" id="header-nw">KES 0</div>
@@ -221,7 +214,7 @@ h1,h2,h3{font-family:var(--font-display);font-weight:400}
       <div class="user-avatar" id="user-avatar" onclick="toggleUserMenu()">?</div>
       <div class="user-menu" id="user-menu">
         <div class="user-menu-email" id="user-menu-email">Loading...</div>
-        <div class="user-menu-item" onclick="exportData()">⬇ Export data (JSON)</div>
+        <div class="user-menu-item" onclick="exportData()">⬇ Download report</div>
         <div class="user-menu-item danger" onclick="signOut()">→ Sign out</div>
       </div>
     </div>

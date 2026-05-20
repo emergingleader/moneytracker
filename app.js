@@ -4,8 +4,8 @@
 // with your actual values from Supabase → Project Settings → API
 // ─────────────────────────────────────────────────────────────
 
-const SUPABASE_URL = 'https://wqvqkkwnppeetnrqxiil.supabase.co'
-const SUPABASE_ANON_KEY = 'sb_publishable_G6zM2Ga7Hlf3fpm63GbHYg_eEncJIUh'
+const SUPABASE_URL = 'YOUR_SUPABASE_URL';
+const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
 
 const { createClient } = supabase;
 const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -158,33 +158,22 @@ async function loadAllData() {
 }
 
 async function saveItem(type, item) {
-  setSyncStatus('syncing');
   const { data, error } = await db
     .from('finance_entries')
     .insert({ user_id: currentUser.id, type, payload: item })
     .select()
     .single();
-  if (error) { setSyncStatus('error'); console.error('Save error:', error); return null; }
-  setSyncStatus('synced');
+  if (error) { console.error('Save error:', error); return null; }
   return data.id;
 }
 
 async function deleteItem(dbId) {
-  setSyncStatus('syncing');
   const { error } = await db
     .from('finance_entries')
     .delete()
     .eq('id', dbId)
     .eq('user_id', currentUser.id);
-  if (error) { setSyncStatus('error'); console.error('Delete error:', error); return; }
-  setSyncStatus('synced');
-}
-
-function setSyncStatus(status) {
-  const dot = document.getElementById('sync-dot');
-  const label = document.getElementById('sync-label');
-  dot.className = 'sync-dot' + (status === 'syncing' ? ' syncing' : status === 'error' ? ' error' : '');
-  label.textContent = status === 'syncing' ? 'Syncing...' : status === 'error' ? 'Sync error' : 'Synced';
+  if (error) { console.error('Delete error:', error); }
 }
 
 // ─── ADD ITEMS ───────────────────────────────────────────────
@@ -449,16 +438,36 @@ function renderAllocChart() {
 
 // ─── HEALTH SCORE ────────────────────────────────────────────
 function renderHealthScore(savRate, dti, months, netw, cash, ta, tl) {
-  const s1 = Math.min(100, Math.max(0, savRate * 5));
-  const s2 = dti <= 30 ? 100 : dti <= 43 ? Math.round(100 - (dti - 30) * 3.3) : Math.max(0, 40 - dti);
-  const s3 = months >= 6 ? 100 : months >= 3 ? 65 : Math.min(55, months * 18);
-  const s4 = netw >= 0 ? Math.min(100, 60 + Math.min(40, netw / (ta || 1) * 60)) : Math.max(0, 40 + (netw / (tl || 1)) * 40);
-  const s5 = cash >= 0 ? 100 : 30;
-  const overall = Math.round((s1 + s2 + s3 + s4 + s5) / 5);
+  const hasData = totA() > 0 || totL() > 0 || totI() > 0 || totE() > 0;
+
+  if (!hasData) {
+    document.getElementById('health-score-area').innerHTML = `
+      <div style="text-align:center;padding:2rem 1rem">
+        <div style="font-size:2.5rem;margin-bottom:0.5rem;opacity:0.3">—</div>
+        <div style="font-size:13px;color:var(--text3);line-height:1.6">Add your assets, liabilities, income, and expenses<br>to generate your financial health score.</div>
+      </div>`;
+    return;
+  }
+
+  // Only score dimensions that have relevant data
+  const hasIncome = totI() > 0;
+  const hasExpenses = totE() > 0;
+  const hasAssets = totA() > 0;
+  const hasLiab = totL() > 0;
+
+  const s1 = hasIncome && hasExpenses ? Math.min(100, Math.max(0, savRate * 5)) : null;
+  const s2 = hasIncome && hasLiab ? (dti <= 30 ? 100 : dti <= 43 ? Math.round(100 - (dti - 30) * 3.3) : Math.max(0, 40 - dti)) : null;
+  const s3 = hasAssets && hasExpenses ? (months >= 6 ? 100 : months >= 3 ? 65 : Math.min(55, months * 18)) : null;
+  const s4 = hasAssets || hasLiab ? (netw >= 0 ? Math.min(100, 60 + Math.min(40, netw / (ta || 1) * 60)) : Math.max(0, 40 + (netw / (tl || 1)) * 40)) : null;
+  const s5 = hasIncome && hasExpenses ? (cash > 0 ? 100 : cash === 0 ? 50 : 30) : null;
+
+  const scored = [s1, s2, s3, s4, s5].filter(v => v !== null);
+  const overall = scored.length > 0 ? Math.round(scored.reduce((a, b) => a + b, 0) / scored.length) : 0;
   const grade = overall >= 80 ? 'Strong 💪' : overall >= 60 ? 'Moderate' : overall >= 40 ? 'Needs work' : 'At risk ⚠';
   const col = overall >= 80 ? 'var(--green)' : overall >= 60 ? 'var(--amber)' : 'var(--red)';
 
   const bar = (label, score, note) => {
+    if (score === null) return `<div class="sbar"><div class="sbar-row"><span style="color:var(--text2)">${label}</span><span style="color:var(--text3);font-size:11px">Add data to score</span></div><div class="sbar-track"><div class="sbar-fill" style="width:0%;background:var(--border2)"></div></div></div>`;
     const c = score >= 70 ? 'var(--green)' : score >= 40 ? 'var(--amber)' : 'var(--red)';
     return `<div class="sbar"><div class="sbar-row"><span style="color:var(--text2)">${label}</span><span style="color:${c};font-weight:500">${note}</span></div><div class="sbar-track"><div class="sbar-fill" style="width:${Math.round(score)}%;background:${c}"></div></div></div>`;
   };
@@ -471,11 +480,11 @@ function renderHealthScore(savRate, dti, months, netw, cash, ta, tl) {
         <div class="score-grade" style="margin-top:4px;font-weight:500;color:${col}">${grade}</div>
       </div>
       <div class="score-bars">
-        ${bar('Savings rate', s1, pct(savRate) + ' saved')}
-        ${bar('Debt burden', s2, 'DTI: ' + pct(dti))}
-        ${bar('Emergency fund', s3, Math.round(months) + 'mo cover')}
-        ${bar('Net worth', s4, netw >= 0 ? 'Positive' : 'Negative')}
-        ${bar('Monthly cashflow', s5, cash >= 0 ? 'Surplus' : 'Deficit')}
+        ${bar('Savings rate', s1, s1 !== null ? pct(savRate) + ' saved' : '')}
+        ${bar('Debt burden', s2, s2 !== null ? 'DTI: ' + pct(dti) : '')}
+        ${bar('Emergency fund', s3, s3 !== null ? Math.round(months) + 'mo cover' : '')}
+        ${bar('Net worth', s4, s4 !== null ? (netw >= 0 ? 'Positive' : 'Negative') : '')}
+        ${bar('Monthly cashflow', s5, s5 !== null ? (cash > 0 ? 'Surplus' : cash === 0 ? 'Break-even' : 'Deficit') : '')}
       </div>
     </div>`;
 }
@@ -564,12 +573,67 @@ function renderInsights() {
   document.getElementById('insights-content').innerHTML = html;
 }
 
-// ─── EXPORT ──────────────────────────────────────────────────
+// ─── EXPORT REPORT ───────────────────────────────────────────
 function exportData() {
   toggleUserMenu(true);
-  const blob = new Blob([JSON.stringify({ assets, liabilities, incomes, expenses }, null, 2)], { type: 'application/json' });
+  const ti = totI(), te = totE(), ta = totA(), tl = totL();
+  const netw = nwVal(), cash = cfVal();
+  const savRate = ti > 0 ? ((ti - te) / ti * 100) : 0;
+  const dti = ti > 0 ? (mDebt() / ti * 100) : 0;
+  const la = liqA();
+  const months = te > 0 ? (la / te) : 0;
+  const date = new Date().toLocaleDateString('en-KE', { year: 'numeric', month: 'long', day: 'numeric' });
+
+  const line = (label, value) => `${label.padEnd(30, '.')} ${value}`;
+  const sep = '─'.repeat(50);
+
+  let report = `NETWORTH TRACKER — FINANCIAL SUMMARY REPORT
+Generated: ${date}
+${sep}
+
+NET WORTH SNAPSHOT
+${sep}
+${line('Total Assets', fmt(ta))}
+${line('Total Liabilities', fmt(tl))}
+${line('Net Worth', fmt(netw))}
+
+MONTHLY CASHFLOW
+${sep}
+${line('Total Monthly Income', fmt(ti))}
+${line('Total Monthly Expenses', fmt(te))}
+${line('Monthly Cashflow', fmt(cash))}
+${line('Annual Cashflow (projected)', fmt(cash * 12))}
+
+KEY RATIOS
+${sep}
+${line('Savings Rate', Math.round(savRate) + '% (target ≥ 20%)')}
+${line('Debt-to-Income Ratio', Math.round(dti) + '% (target ≤ 30%)')}
+${line('Emergency Fund Cover', Math.round(months) + ' months (target 3–6)')}
+
+ASSETS (${assets.length} items)
+${sep}
+${assets.length ? assets.map(a => line(a.name, fmt(a.val) + ' — ' + a.cat)).join('\n') : 'None recorded.'}
+
+LIABILITIES (${liabilities.length} items)
+${sep}
+${liabilities.length ? liabilities.map(l => line(l.name, fmt(l.bal) + (l.rate ? ' @ ' + l.rate + '%' : ''))).join('\n') : 'None recorded.'}
+
+INCOME STREAMS (${incomes.length} items)
+${sep}
+${incomes.length ? incomes.map(i => line(i.name, fmt(i.amt) + '/month — ' + i.type)).join('\n') : 'None recorded.'}
+
+MONTHLY EXPENSES (${expenses.length} items)
+${sep}
+${expenses.length ? expenses.map(e => line(e.name, fmt(e.amt) + '/month — ' + (e.ess ? 'Essential' : 'Discretionary'))).join('\n') : 'None recorded.'}
+
+${sep}
+This report was generated by NetWorth Tracker.
+Data is personal and confidential.
+`;
+
+  const blob = new Blob([report], { type: 'text/plain' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = 'networth_backup_' + new Date().toISOString().slice(0, 10) + '.json';
+  a.download = 'networth_report_' + new Date().toISOString().slice(0, 10) + '.txt';
   a.click();
 }
