@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>NetWorth Tracker — Personal Finance Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:#0f1117;--bg2:#161a24;--bg3:#1e2230;--bg4:#252a3a;
+  --border:#2e3448;--border2:#3a4060;
+  --text:#e8eaf0;--text2:#9aa0b8;--text3:#636880;
+  --green:#2dd4a0;--green-dim:#1a3d35;
+  --red:#f05a5a;--red-dim:#3d1a1a;
+  --amber:#f0a832;--amber-dim:#3d2e10;
+  --blue:#5b9cf6;--blue-dim:#1a2d4d;
+  --accent:#5b9cf6;
+  --radius:10px;--radius-lg:16px;--radius-xl:20px;
+  --font-display:'DM Serif Display',Georgia,serif;
+  --font-body:'DM Sans',system-ui,sans-serif;
+}
+body{background:var(--bg);color:var(--text);font-family:var(--font-body);font-size:15px;min-height:100vh;line-height:1.6}
+h1,h2,h3{font-family:var(--font-display);font-weight:400}
+
+/* HEADER */
+.header{background:var(--bg2);border-bottom:1px solid var(--border);padding:1rem 1.25rem;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.header-logo{font-family:var(--font-display);font-size:1.3rem;color:var(--text);letter-spacing:-0.01em}
+.header-logo span{color:var(--blue)}
+.header-nw{text-align:right}
+.header-nw-label{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em}
+.header-nw-val{font-size:1.1rem;font-weight:600}
+
+/* TABS */
+.tab-bar{background:var(--bg2);border-bottom:1px solid var(--border);display:flex;overflow-x:auto;scrollbar-width:none;-ms-overflow-style:none;position:sticky;top:61px;z-index:99}
+.tab-bar::-webkit-scrollbar{display:none}
+.tab-btn{flex-shrink:0;padding:0.75rem 1.1rem;font-size:12.5px;font-family:var(--font-body);font-weight:500;color:var(--text3);background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;transition:all 0.15s;letter-spacing:0.02em;text-transform:uppercase}
+.tab-btn.active{color:var(--blue);border-bottom-color:var(--blue)}
+.tab-btn:hover:not(.active){color:var(--text2)}
+
+/* SECTIONS */
+.section{display:none;padding:1.25rem;max-width:900px;margin:0 auto}
+.section.active{display:block}
+
+/* METRIC CARDS */
+.metrics{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:1.25rem}
+@media(min-width:600px){.metrics{grid-template-columns:repeat(3,1fr)}}
+@media(min-width:900px){.metrics{grid-template-columns:repeat(6,1fr)}}
+.metric{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:1rem}
+.metric-label{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.25rem}
+.metric-value{font-size:1.35rem;font-weight:600;line-height:1.1}
+.metric-sub{font-size:11px;color:var(--text3);margin-top:4px}
+.green{color:var(--green)}.red{color:var(--red)}.amber{color:var(--amber)}.blue{color:var(--blue)}
+
+/* CHART CARDS */
+.chart-row{display:grid;grid-template-columns:1fr;gap:12px;margin-bottom:1.25rem}
+@media(min-width:640px){.chart-row{grid-template-columns:1fr 1fr}}
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-xl);padding:1.25rem}
+.card-title{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:1rem}
+
+/* HEALTH SCORE */
+.health-wrap{display:flex;gap:1.5rem;align-items:flex-start;flex-wrap:wrap}
+.score-circle{text-align:center;min-width:90px}
+.score-num{font-family:var(--font-display);font-size:3.5rem;line-height:1}
+.score-grade{font-size:12px;color:var(--text3);margin-top:4px}
+.score-bars{flex:1;min-width:200px}
+.sbar{margin-bottom:10px}
+.sbar-row{display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px}
+.sbar-track{height:5px;border-radius:3px;background:var(--bg4)}
+.sbar-fill{height:100%;border-radius:3px;transition:width 0.4s ease}
+
+/* FORM CARD */
+.form-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-xl);padding:1.25rem;margin-bottom:1rem}
+.form-card .card-title{margin-bottom:0.75rem}
+.field{margin-bottom:0.75rem}
+.field label{display:block;font-size:12px;color:var(--text3);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.05em}
+.field input,.field select{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:10px 12px;font-size:14px;color:var(--text);font-family:var(--font-body);outline:none;transition:border-color 0.15s;-webkit-appearance:none}
+.field input:focus,.field select:focus{border-color:var(--blue)}
+.field select option{background:var(--bg3)}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media(min-width:600px){.field-row{grid-template-columns:1fr 1fr 1fr}}
+.btn{padding:10px 18px;border-radius:var(--radius);font-size:13px;font-weight:500;font-family:var(--font-body);cursor:pointer;transition:all 0.15s;border:1px solid var(--border2)}
+.btn-primary{background:var(--blue);color:#fff;border-color:var(--blue)}
+.btn-primary:hover{opacity:0.88}
+.btn-ghost{background:transparent;color:var(--text2)}
+.btn-ghost:hover{background:var(--bg3)}
+.btn-danger{background:transparent;color:var(--red);border-color:var(--red-dim);padding:6px 10px;font-size:12px}
+.btn-danger:hover{background:var(--red-dim)}
+
+/* LIST ITEMS */
+.list-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-xl);padding:0.25rem 1.25rem;margin-bottom:1rem}
+.list-item{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border)}
+.list-item:last-child{border-bottom:none}
+.li-name{font-weight:500;font-size:14px}
+.li-meta{font-size:11px;color:var(--text3);margin-top:2px}
+.tag{display:inline-block;font-size:10px;padding:2px 7px;border-radius:20px;background:var(--bg4);color:var(--text3);margin-right:4px;text-transform:uppercase;letter-spacing:0.04em}
+.tag-green{background:var(--green-dim);color:var(--green)}
+.tag-amber{background:var(--amber-dim);color:var(--amber)}
+.tag-red{background:var(--red-dim);color:var(--red)}
+.tag-blue{background:var(--blue-dim);color:var(--blue)}
+.li-amount{text-align:right}
+.li-val{font-weight:600;font-size:15px}
+.li-sub{font-size:11px;color:var(--text3)}
+.list-footer{padding:12px 0;display:flex;justify-content:space-between;align-items:center;font-size:13px;font-weight:500}
+
+/* ALERTS */
+.alert{padding:12px 16px;border-radius:var(--radius-lg);margin-bottom:10px;font-size:13.5px;line-height:1.55;border:1px solid}
+.alert strong{font-weight:600}
+.alert em{font-style:normal;opacity:0.8}
+.alert-danger{background:var(--red-dim);border-color:rgba(240,90,90,0.3);color:#ffb3b3}
+.alert-warning{background:var(--amber-dim);border-color:rgba(240,168,50,0.3);color:#ffd680}
+.alert-success{background:var(--green-dim);border-color:rgba(45,212,160,0.3);color:#a7f3d0}
+.alert-info{background:var(--blue-dim);border-color:rgba(91,156,246,0.3);color:#bfdbfe}
+.alert-icon{font-size:16px;margin-right:8px;vertical-align:-2px}
+
+/* SECTION HEADING */
+.section-head{font-size:15px;font-weight:500;color:var(--text);margin:1.25rem 0 0.75rem;display:flex;align-items:center;gap:6px}
+.section-head svg{flex-shrink:0}
+
+/* EMPTY STATE */
+.empty{text-align:center;padding:2rem;color:var(--text3);font-size:13px}
+
+/* TOTAL ROW */
+.total-row{display:flex;justify-content:space-between;padding:10px 0;font-weight:600;font-size:14px}
+
+/* SAVE/LOAD BAR */
+.data-bar{background:var(--bg2);border-top:1px solid var(--border);padding:0.75rem 1.25rem;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.data-bar-label{font-size:12px;color:var(--text3);flex:1}
+
+/* MOBILE BOTTOM NAV */
+@media(max-width:600px){
+  .section{padding:1rem}
+  .header-logo{font-size:1.1rem}
+}
+
+/* SCROLLBAR */
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+
+/* ANIMATIONS */
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.section.active>*{animation:fadeIn 0.2s ease forwards}
+
+/* PRINT */
+@media print{.tab-bar,.data-bar,.btn-danger,.btn-primary{display:none}.section{display:block!important;page-break-inside:avoid}}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-logo">Net<span>Worth</span> Tracker</div>
+  <div class="header-nw">
+    <div class="header-nw-label">Net Worth</div>
+    <div class="header-nw-val green" id="header-nw">KES 0</div>
+  </div>
+</div>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="switchTab('overview')">Overview</button>
+  <button class="tab-btn" onclick="switchTab('assets')">Assets</button>
+  <button class="tab-btn" onclick="switchTab('liabilities')">Liabilities</button>
+  <button class="tab-btn" onclick="switchTab('income')">Income</button>
+  <button class="tab-btn" onclick="switchTab('expenses')">Expenses</button>
+  <button class="tab-btn" onclick="switchTab('insights')">Insights</button>
+</div>
+
+<!-- OVERVIEW -->
+<div id="tab-overview" class="section active">
+  <div class="metrics" id="overview-metrics"></div>
+  <div class="chart-row">
+    <div class="card">
+      <div class="card-title">Net worth breakdown</div>
+      <div style="position:relative;height:180px"><canvas id="nwChart" role="img" aria-label="Net worth breakdown bar chart"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Income vs expenses</div>
+      <div style="position:relative;height:180px"><canvas id="ieChart" role="img" aria-label="Income vs expenses bar chart"></canvas></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Financial health score</div>
+    <div id="health-score-area"></div>
+  </div>
+  <div class="card" style="margin-top:12px">
+    <div class="card-title">Asset allocation</div>
+    <div style="position:relative;height:180px"><canvas id="allocChart" role="img" aria-label="Asset allocation donut chart"></canvas></div>
+    <div id="alloc-legend" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;font-size:12px"></div>
+  </div>
+</div>
+
+<!-- ASSETS -->
+<div id="tab-assets" class="section">
+  <div class="form-card">
+    <div class="card-title">Add asset</div>
+    <div class="field"><label>Asset name</label><input id="a-name" placeholder="e.g. Land title Nakuru, M-Pesa savings"></div>
+    <div class="field-row">
+      <div class="field"><label>Category</label>
+        <select id="a-cat">
+          <option>Cash & savings</option><option>Investments</option><option>Property / land</option>
+          <option>Vehicle</option><option>Business equity</option><option>Pension / NSSF</option><option>Other</option>
+        </select>
+      </div>
+      <div class="field"><label>Value (KES)</label><input id="a-val" type="number" placeholder="0" min="0"></div>
+      <div class="field"><label>Liquid?</label>
+        <select id="a-liq"><option value="1">Yes — liquid</option><option value="0">No — illiquid</option></select>
+      </div>
+    </div>
+    <button class="btn btn-primary" onclick="addAsset()">+ Add asset</button>
+  </div>
+  <div class="list-card" id="asset-list-wrap">
+    <div class="empty" id="asset-empty">No assets added yet. Start above.</div>
+    <div id="asset-list"></div>
+    <div class="total-row" id="asset-total-row" style="display:none">
+      <span style="color:var(--text2)">Total assets</span>
+      <span class="green" id="asset-total">KES 0</span>
+    </div>
+  </div>
+</div>
+
+<!-- LIABILITIES -->
+<div id="tab-liabilities" class="section">
+  <div class="form-card">
+    <div class="card-title">Add loan / liability</div>
+    <div class="field"><label>Name</label><input id="l-name" placeholder="e.g. KCB mortgage, Fuliza balance"></div>
+    <div class="field-row">
+      <div class="field"><label>Type</label>
+        <select id="l-type">
+          <option>Mortgage</option><option>Personal loan</option><option>Mobile loan</option>
+          <option>Car loan</option><option>Credit card</option><option>SACCO loan</option>
+          <option>Business loan</option><option>Other</option>
+        </select>
+      </div>
+      <div class="field"><label>Balance (KES)</label><input id="l-bal" type="number" placeholder="0" min="0"></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Monthly payment</label><input id="l-pay" type="number" placeholder="0" min="0"></div>
+      <div class="field"><label>Interest rate %</label><input id="l-rate" type="number" placeholder="e.g. 14" min="0" max="100"></div>
+    </div>
+    <button class="btn btn-primary" onclick="addLiability()">+ Add liability</button>
+  </div>
+  <div class="list-card">
+    <div class="empty" id="liab-empty">No liabilities added yet.</div>
+    <div id="liability-list"></div>
+    <div class="total-row" id="liab-total-row" style="display:none">
+      <span style="color:var(--text2)">Total liabilities</span>
+      <span class="red" id="liability-total">KES 0</span>
+    </div>
+  </div>
+</div>
+
+<!-- INCOME -->
+<div id="tab-income" class="section">
+  <div class="form-card">
+    <div class="card-title">Add income stream</div>
+    <div class="field"><label>Source name</label><input id="i-name" placeholder="e.g. Salary, Consultancy, Rental"></div>
+    <div class="field-row">
+      <div class="field"><label>Type</label>
+        <select id="i-type">
+          <option>Salary</option><option>Freelance / consultancy</option><option>Business income</option>
+          <option>Rental income</option><option>Investment returns</option><option>Side hustle</option><option>Other</option>
+        </select>
+      </div>
+      <div class="field"><label>Monthly (KES)</label><input id="i-amt" type="number" placeholder="0" min="0"></div>
+    </div>
+    <button class="btn btn-primary" onclick="addIncome()">+ Add income</button>
+  </div>
+  <div class="list-card">
+    <div class="empty" id="income-empty">No income streams added yet.</div>
+    <div id="income-list"></div>
+    <div class="total-row" id="income-total-row" style="display:none">
+      <span style="color:var(--text2)">Monthly income</span>
+      <span class="green" id="income-total">KES 0</span>
+    </div>
+  </div>
+</div>
+
+<!-- EXPENSES -->
+<div id="tab-expenses" class="section">
+  <div class="form-card">
+    <div class="card-title">Add expense</div>
+    <div class="field"><label>Expense name</label><input id="e-name" placeholder="e.g. Rent, School fees, Fuel"></div>
+    <div class="field-row">
+      <div class="field"><label>Category</label>
+        <select id="e-cat">
+          <option>Housing / rent</option><option>Food & groceries</option><option>Transport</option>
+          <option>Utilities</option><option>Education</option><option>Health</option>
+          <option>Entertainment</option><option>Loan repayment</option>
+          <option>Savings / investment</option><option>Clothing</option><option>Other</option>
+        </select>
+      </div>
+      <div class="field"><label>Monthly (KES)</label><input id="e-amt" type="number" placeholder="0" min="0"></div>
+      <div class="field"><label>Essential?</label>
+        <select id="e-ess"><option value="1">Yes — essential</option><option value="0">No — discretionary</option></select>
+      </div>
+    </div>
+    <button class="btn btn-primary" onclick="addExpense()">+ Add expense</button>
+  </div>
+  <div class="list-card">
+    <div class="empty" id="expense-empty">No expenses added yet.</div>
+    <div id="expense-list"></div>
+    <div class="total-row" id="expense-total-row" style="display:none">
+      <span style="color:var(--text2)">Monthly expenses</span>
+      <span class="red" id="expense-total">KES 0</span>
+    </div>
+  </div>
+</div>
+
+<!-- INSIGHTS -->
+<div id="tab-insights" class="section">
+  <div id="insights-content">
+    <div class="alert alert-info">
+      <span class="alert-icon">💡</span>
+      Add your data in the Assets, Liabilities, Income, and Expenses tabs first — then come back here for your personalised analysis and risk alerts.
+    </div>
+  </div>
+</div>
+
+<!-- SAVE/LOAD -->
+<div class="data-bar">
+  <span class="data-bar-label">Your data is saved automatically in this browser</span>
+  <button class="btn btn-ghost" onclick="exportData()" style="font-size:12px">⬇ Export JSON</button>
+  <label class="btn btn-ghost" style="font-size:12px;cursor:pointer">⬆ Import JSON<input type="file" accept=".json" style="display:none" onchange="importData(event)"></label>
+  <button class="btn btn-ghost" onclick="clearAll()" style="font-size:12px;color:var(--red)">🗑 Clear all</button>
+</div>
+
+<script>
+let assets=[], liabilities=[], incomes=[], expenses=[];
+let nwChart=null, ieChart=null, allocChart=null;
+
+// ─── STORAGE ───────────────────────────────────────────────
+function save(){
+  localStorage.setItem('nwt_data', JSON.stringify({assets,liabilities,incomes,expenses}));
+}
+function load(){
+  try{
+    const d=JSON.parse(localStorage.getItem('nwt_data')||'{}');
+    assets=d.assets||[]; liabilities=d.liabilities||[];
+    incomes=d.incomes||[]; expenses=d.expenses||[];
+  }catch(e){assets=[];liabilities=[];incomes=[];expenses=[];}
+}
+function exportData(){
+  const blob=new Blob([JSON.stringify({assets,liabilities,incomes,expenses},null,2)],{type:'application/json'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+  a.download='networth_data_'+new Date().toISOString().slice(0,10)+'.json'; a.click();
+}
+function importData(e){
+  const file=e.target.files[0]; if(!file) return;
+  const r=new FileReader(); r.onload=ev=>{
+    try{
+      const d=JSON.parse(ev.target.result);
+      assets=d.assets||[]; liabilities=d.liabilities||[];
+      incomes=d.incomes||[]; expenses=d.expenses||[];
+      save(); renderAll(); alert('Data imported successfully!');
+    }catch(err){alert('Import failed — invalid file.');}
+  }; r.readAsText(file);
+}
+function clearAll(){
+  if(!confirm('Clear ALL data? This cannot be undone.')) return;
+  assets=[];liabilities=[];incomes=[];expenses=[];save();renderAll();
+}
+
+// ─── FORMATTERS ────────────────────────────────────────────
+function fmt(n){return 'KES '+Math.round(n).toLocaleString();}
+function pct(n){return Math.round(n)+'%';}
+
+// ─── TOTALS ────────────────────────────────────────────────
+const totA=()=>assets.reduce((s,a)=>s+a.val,0);
+const totL=()=>liabilities.reduce((s,l)=>s+l.bal,0);
+const totI=()=>incomes.reduce((s,i)=>s+i.amt,0);
+const totE=()=>expenses.reduce((s,e)=>s+e.amt,0);
+const nw=()=>totA()-totL();
+const cf=()=>totI()-totE();
+const mDebt=()=>liabilities.reduce((s,l)=>s+l.pay,0);
+const liqA=()=>assets.filter(a=>a.liq).reduce((s,a)=>s+a.val,0);
+
+// ─── TABS ──────────────────────────────────────────────────
+function switchTab(t){
+  document.querySelectorAll('.tab-btn').forEach((b,i)=>{
+    b.classList.toggle('active',['overview','assets','liabilities','income','expenses','insights'][i]===t);
+  });
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.getElementById('tab-'+t).classList.add('active');
+  if(t==='overview') renderOverview();
+  if(t==='insights') renderInsights();
+}
+
+// ─── ADD ITEMS ─────────────────────────────────────────────
+function addAsset(){
+  const n=document.getElementById('a-name').value.trim();
+  const v=parseFloat(document.getElementById('a-val').value)||0;
+  if(!n||v<=0){alert('Please enter a name and a value greater than 0.');return;}
+  assets.push({id:Date.now(),name:n,cat:document.getElementById('a-cat').value,val:v,liq:document.getElementById('a-liq').value==='1'});
+  document.getElementById('a-name').value='';document.getElementById('a-val').value='';
+  save();renderAssets();renderHeaderNW();
+}
+function addLiability(){
+  const n=document.getElementById('l-name').value.trim();
+  const b=parseFloat(document.getElementById('l-bal').value)||0;
+  const p=parseFloat(document.getElementById('l-pay').value)||0;
+  const r=parseFloat(document.getElementById('l-rate').value)||0;
+  if(!n||b<=0){alert('Please enter a name and a balance greater than 0.');return;}
+  liabilities.push({id:Date.now(),name:n,type:document.getElementById('l-type').value,bal:b,pay:p,rate:r});
+  ['l-name','l-bal','l-pay','l-rate'].forEach(id=>document.getElementById(id).value='');
+  save();renderLiabilities();renderHeaderNW();
+}
+function addIncome(){
+  const n=document.getElementById('i-name').value.trim();
+  const a=parseFloat(document.getElementById('i-amt').value)||0;
+  if(!n||a<=0){alert('Please enter a source and an amount greater than 0.');return;}
+  incomes.push({id:Date.now(),name:n,type:document.getElementById('i-type').value,amt:a});
+  document.getElementById('i-name').value='';document.getElementById('i-amt').value='';
+  save();renderIncome();renderHeaderNW();
+}
+function addExpense(){
+  const n=document.getElementById('e-name').value.trim();
+  const a=parseFloat(document.getElementById('e-amt').value)||0;
+  if(!n||a<=0){alert('Please enter a name and an amount greater than 0.');return;}
+  expenses.push({id:Date.now(),name:n,cat:document.getElementById('e-cat').value,amt:a,ess:document.getElementById('e-ess').value==='1'});
+  document.getElementById('e-name').value='';document.getElementById('e-amt').value='';
+  save();renderExpenses();renderHeaderNW();
+}
+
+// ─── REMOVE ────────────────────────────────────────────────
+function removeAsset(id){assets=assets.filter(a=>a.id!==id);save();renderAssets();renderHeaderNW();}
+function removeLiability(id){liabilities=liabilities.filter(l=>l.id!==id);save();renderLiabilities();renderHeaderNW();}
+function removeIncome(id){incomes=incomes.filter(i=>i.id!==id);save();renderIncome();renderHeaderNW();}
+function removeExpense(id){expenses=expenses.filter(e=>e.id!==id);save();renderExpenses();renderHeaderNW();}
+
+// ─── RENDER HEADER ─────────────────────────────────────────
+function renderHeaderNW(){
+  const v=nw();
+  const el=document.getElementById('header-nw');
+  el.textContent=fmt(v);
+  el.className='header-nw-val '+(v>=0?'green':'red');
+}
+
+// ─── RENDER LISTS ──────────────────────────────────────────
+function renderAssets(){
+  const el=document.getElementById('asset-list');
+  const empty=document.getElementById('asset-empty');
+  const totalRow=document.getElementById('asset-total-row');
+  if(!assets.length){empty.style.display='block';el.innerHTML='';totalRow.style.display='none';return;}
+  empty.style.display='none';totalRow.style.display='flex';
+  el.innerHTML=assets.map(a=>`
+    <div class="list-item">
+      <div><div class="li-name">${a.name}</div>
+        <div class="li-meta"><span class="tag">${a.cat}</span><span class="tag ${a.liq?'tag-green':'tag-amber'}">${a.liq?'Liquid':'Illiquid'}</span></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <div class="li-amount"><div class="li-val green">${fmt(a.val)}</div></div>
+        <button class="btn btn-danger" onclick="removeAsset(${a.id})">✕</button>
+      </div>
+    </div>`).join('');
+  document.getElementById('asset-total').textContent=fmt(totA());
+}
+function renderLiabilities(){
+  const el=document.getElementById('liability-list');
+  const empty=document.getElementById('liab-empty');
+  const totalRow=document.getElementById('liab-total-row');
+  if(!liabilities.length){empty.style.display='block';el.innerHTML='';totalRow.style.display='none';return;}
+  empty.style.display='none';totalRow.style.display='flex';
+  el.innerHTML=liabilities.map(l=>`
+    <div class="list-item">
+      <div><div class="li-name">${l.name}</div>
+        <div class="li-meta"><span class="tag">${l.type}</span>${l.rate?`<span class="tag tag-red">${l.rate}% p.a.</span>`:''}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <div class="li-amount"><div class="li-val red">${fmt(l.bal)}</div>${l.pay?`<div class="li-sub">${fmt(l.pay)}/mo</div>`:''}</div>
+        <button class="btn btn-danger" onclick="removeLiability(${l.id})">✕</button>
+      </div>
+    </div>`).join('');
+  document.getElementById('liability-total').textContent=fmt(totL());
+}
+function renderIncome(){
+  const el=document.getElementById('income-list');
+  const empty=document.getElementById('income-empty');
+  const totalRow=document.getElementById('income-total-row');
+  if(!incomes.length){empty.style.display='block';el.innerHTML='';totalRow.style.display='none';return;}
+  empty.style.display='none';totalRow.style.display='flex';
+  const ti=totI();
+  el.innerHTML=incomes.map(i=>`
+    <div class="list-item">
+      <div><div class="li-name">${i.name}</div>
+        <div class="li-meta"><span class="tag">${i.type}</span><span class="tag tag-blue">${ti>0?Math.round(i.amt/ti*100):0}% of income</span></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <div class="li-amount"><div class="li-val green">${fmt(i.amt)}</div></div>
+        <button class="btn btn-danger" onclick="removeIncome(${i.id})">✕</button>
+      </div>
+    </div>`).join('');
+  document.getElementById('income-total').textContent=fmt(ti);
+}
+function renderExpenses(){
+  const el=document.getElementById('expense-list');
+  const empty=document.getElementById('expense-empty');
+  const totalRow=document.getElementById('expense-total-row');
+  if(!expenses.length){empty.style.display='block';el.innerHTML='';totalRow.style.display='none';return;}
+  empty.style.display='none';totalRow.style.display='flex';
+  const te=totE();
+  el.innerHTML=expenses.map(e=>`
+    <div class="list-item">
+      <div><div class="li-name">${e.name}</div>
+        <div class="li-meta"><span class="tag">${e.cat}</span><span class="tag ${e.ess?'tag-green':'tag-amber'}">${e.ess?'Essential':'Discretionary'}</span><span class="tag">${te>0?Math.round(e.amt/te*100):0}%</span></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <div class="li-amount"><div class="li-val red">${fmt(e.amt)}</div></div>
+        <button class="btn btn-danger" onclick="removeExpense(${e.id})">✕</button>
+      </div>
+    </div>`).join('');
+  document.getElementById('expense-total').textContent=fmt(te);
+}
+
+// ─── OVERVIEW ──────────────────────────────────────────────
+function renderOverview(){
+  const ta=totA(), tl=totL(), ti=totI(), te=totE();
+  const netw=nw(), cash=cf();
+  const savRate=ti>0?((ti-te)/ti*100):0;
+  const dti=ti>0?(mDebt()/ti*100):0;
+  const la=liqA();
+  const months=te>0?(la/te):0;
+  const liabRatio=ta>0?(tl/ta*100):0;
+
+  function mCard(label, value, cls, sub){
+    return `<div class="metric"><div class="metric-label">${label}</div><div class="metric-value ${cls}">${value}</div><div class="metric-sub">${sub}</div></div>`;
+  }
+  document.getElementById('overview-metrics').innerHTML=
+    mCard('Net worth', fmt(netw), netw>=0?'green':'red', netw>=0?'Positive ✓':'Negative — review liabilities')+
+    mCard('Monthly cashflow', fmt(cash), cash>=0?'green':'red', cash>=0?'Surplus':'Deficit — cut expenses')+
+    mCard('Savings rate', pct(savRate), savRate>=20?'green':savRate>=10?'amber':'red', 'Target ≥ 20%')+
+    mCard('Debt-to-income', pct(dti), dti<=30?'green':dti<=43?'amber':'red', 'Target ≤ 30%')+
+    mCard('Emergency fund', Math.round(months)+' months', months>=6?'green':months>=3?'amber':'red', 'Target 3–6 months')+
+    mCard('Debt ratio', pct(liabRatio), liabRatio<=40?'green':liabRatio<=70?'amber':'red', 'Liabilities / assets');
+
+  renderNWChart(ta, tl, netw);
+  renderIEChart(ti, te, cash);
+  renderAllocChart();
+  renderHealthScore(savRate, dti, months, netw, cash);
+  renderHeaderNW();
+}
+
+function renderNWChart(ta, tl, netw){
+  const ctx=document.getElementById('nwChart');
+  if(nwChart){nwChart.destroy();}
+  nwChart=new Chart(ctx,{
+    type:'bar',
+    data:{labels:['Assets','Liabilities','Net Worth'],
+      datasets:[{data:[ta,tl,Math.abs(netw)],backgroundColor:['rgba(45,212,160,0.8)','rgba(240,90,90,0.8)',netw>=0?'rgba(91,156,246,0.8)':'rgba(240,90,90,0.5)'],borderRadius:6}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+      scales:{y:{ticks:{callback:v=>{if(v>=1000000)return(v/1000000).toFixed(1)+'M';if(v>=1000)return(v/1000).toFixed(0)+'K';return v;},color:'#636880',font:{size:10}},grid:{color:'rgba(255,255,255,0.05)'},border:{display:false}},
+        x:{grid:{display:false},ticks:{color:'#9aa0b8',font:{size:11}},border:{display:false}}}}
+  });
+}
+
+function renderIEChart(ti, te, cash){
+  const ctx=document.getElementById('ieChart');
+  if(ieChart){ieChart.destroy();}
+  ieChart=new Chart(ctx,{
+    type:'bar',
+    data:{labels:['Income','Expenses','Cashflow'],
+      datasets:[{data:[ti,te,Math.abs(cash)],backgroundColor:['rgba(45,212,160,0.8)','rgba(240,90,90,0.8)',cash>=0?'rgba(91,156,246,0.8)':'rgba(240,90,90,0.5)'],borderRadius:6}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+      scales:{y:{ticks:{callback:v=>{if(v>=1000000)return(v/1000000).toFixed(1)+'M';if(v>=1000)return(v/1000).toFixed(0)+'K';return v;},color:'#636880',font:{size:10}},grid:{color:'rgba(255,255,255,0.05)'},border:{display:false}},
+        x:{grid:{display:false},ticks:{color:'#9aa0b8',font:{size:11}},border:{display:false}}}}
+  });
+}
+
+function renderAllocChart(){
+  const ctx=document.getElementById('allocChart');
+  if(allocChart){allocChart.destroy();}
+  if(!assets.length){
+    document.getElementById('alloc-legend').innerHTML='<span style="color:var(--text3);font-size:12px">Add assets to see allocation.</span>';
+    return;
+  }
+  const cats={};
+  assets.forEach(a=>{cats[a.cat]=(cats[a.cat]||0)+a.val;});
+  const labels=Object.keys(cats);
+  const data=Object.values(cats);
+  const colors=['#2dd4a0','#5b9cf6','#f0a832','#f05a5a','#a78bfa','#f472b6','#34d399'];
+  const total=data.reduce((s,v)=>s+v,0);
+  allocChart=new Chart(ctx,{
+    type:'doughnut',
+    data:{labels,datasets:[{data,backgroundColor:colors.slice(0,data.length),borderWidth:0,hoverOffset:4}]},
+    options:{responsive:true,maintainAspectRatio:false,cutout:'65%',plugins:{legend:{display:false}}}
+  });
+  document.getElementById('alloc-legend').innerHTML=labels.map((l,i)=>
+    `<span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:2px;background:${colors[i]};flex-shrink:0"></span><span style="color:var(--text2)">${l}</span><span style="color:var(--text3)">${total>0?Math.round(data[i]/total*100):0}%</span></span>`
+  ).join('');
+}
+
+function renderHealthScore(savRate, dti, months, netw, cash){
+  const s1=Math.min(100,Math.max(0,savRate*5));
+  const s2=dti<=30?100:dti<=43?Math.round(100-(dti-30)*3.3):Math.max(0,40-dti);
+  const s3=months>=6?100:months>=3?65:Math.min(55,months*18);
+  const ta=totA();
+  const s4=netw>=0?Math.min(100,60+Math.min(40,netw/(ta||1)*60)):Math.max(0,40+(netw/(totL()||1))*40);
+  const s5=cash>=0?100:30;
+  const overall=Math.round((s1+s2+s3+s4+s5)/5);
+  const grade=overall>=80?'Strong 💪':overall>=60?'Moderate':overall>=40?'Needs work':'At risk ⚠';
+  const col=overall>=80?'var(--green)':overall>=60?'var(--amber)':overall>=40?'var(--red)':'var(--red)';
+
+  function bar(label, score, note){
+    const c=score>=70?'var(--green)':score>=40?'var(--amber)':'var(--red)';
+    return `<div class="sbar">
+      <div class="sbar-row"><span style="color:var(--text2)">${label}</span><span style="color:${c};font-weight:500">${note}</span></div>
+      <div class="sbar-track"><div class="sbar-fill" style="width:${Math.round(score)}%;background:${c}"></div></div>
+    </div>`;
+  }
+  document.getElementById('health-score-area').innerHTML=`
+    <div class="health-wrap">
+      <div class="score-circle">
+        <div class="score-num" style="color:${col}">${overall}</div>
+        <div class="score-grade">/100</div>
+        <div class="score-grade" style="margin-top:4px;font-weight:500;color:${col}">${grade}</div>
+      </div>
+      <div class="score-bars">
+        ${bar('Savings rate',s1,pct(savRate)+' saved')}
+        ${bar('Debt burden',s2,'DTI: '+pct(dti))}
+        ${bar('Emergency fund',s3,Math.round(months)+'mo cover')}
+        ${bar('Net worth',s4,netw>=0?'Positive':'Negative')}
+        ${bar('Monthly cashflow',s5,cash>=0?'Surplus':'Deficit')}
+      </div>
+    </div>`;
+}
+
+// ─── INSIGHTS ──────────────────────────────────────────────
+function renderInsights(){
+  const ti=totI(), te=totE(), ta=totA(), tl=totL();
+  const cash=cf(), netw=nw();
+  const savRate=ti>0?((ti-te)/ti*100):0;
+  const dti=ti>0?(mDebt()/ti*100):0;
+  const la=liqA();
+  const months=te>0?(la/te):0;
+  const discExp=expenses.filter(e=>!e.ess).reduce((s,e)=>s+e.amt,0);
+  const highRateLoans=liabilities.filter(l=>l.rate>18);
+  const passiveInc=incomes.filter(i=>['Investment returns','Rental income'].includes(i.type));
+
+  if(ta===0&&tl===0&&ti===0&&te===0){
+    document.getElementById('insights-content').innerHTML=`<div class="alert alert-info"><span class="alert-icon">💡</span>Add your data across all tabs first — Assets, Liabilities, Income, and Expenses — then your personalised analysis will appear here.</div>`;
+    return;
+  }
+
+  const alerts=[], improvements=[], strengths=[];
+
+  // RISK ALERTS
+  if(cash<0) alerts.push({level:'danger',msg:`<strong>🔴 Negative cashflow — deficit of ${fmt(Math.abs(cash))}/month.</strong> You are spending more than you earn. Every month this gap continues, you accumulate debt or deplete savings. <em>Action: Review the Expenses tab. Target at least ${fmt(Math.abs(cash))} in cuts from discretionary items first.</em>`});
+  if(dti>43) alerts.push({level:'danger',msg:`<strong>🔴 Critical debt-to-income ratio: ${pct(dti)}.</strong> Above 43% signals to lenders you are overleveraged. A job loss or income dip could make repayments impossible. <em>Action: Stop taking any new debt. Redirect all surplus cashflow to highest-interest loans first (avalanche method).</em>`});
+  else if(dti>30&&dti<=43) alerts.push({level:'warning',msg:`<strong>🟡 Elevated DTI at ${pct(dti)} — above the 30% safe threshold.</strong> You are approaching a risky zone. <em>Action: Avoid new loans. Add any bonus or extra income to loan principal reduction.</em>`});
+  if(months<3) alerts.push({level:'danger',msg:`<strong>🔴 Emergency fund: only ${Math.round(months)} month(s) of cover.</strong> A single financial shock — medical, job loss, car breakdown — would push you into debt immediately. <em>Action: Open a separate savings account (NCBA Loop, M-Shwari, or a money market fund). Save a fixed amount each month — even KES 5,000 helps. Target: ${fmt(te*3)} minimum.</em>`});
+  else if(months<6) alerts.push({level:'warning',msg:`<strong>🟡 Emergency fund is below the 6-month target (${Math.round(months)} months).</strong> <em>Action: Keep building. Target ${fmt(te*6)} in liquid savings. Automate a monthly transfer.</em>`});
+  if(incomes.length<=1&&ti>0) alerts.push({level:'warning',msg:`<strong>🟡 Single income stream — high concentration risk.</strong> If this source disrupts, all your commitments are at risk immediately. <em>Action: Explore a complementary income stream — MEAL consultancy on the side, data analysis contracts, training/workshops. Even KES 10,000/month extra diversifies risk significantly.</em>`});
+  if(highRateLoans.length>0) alerts.push({level:'warning',msg:`<strong>🟡 High-interest loan(s): ${highRateLoans.map(l=>l.name+' @ '+l.rate+'%').join(', ')}.</strong> Rates above 18% p.a. compound aggressively and erode net worth fast. <em>Action: Prioritise these above investing — no investment reliably beats 20–30% guaranteed return from eliminating high-rate debt. Consider refinancing through a SACCO at lower rates.</em>`});
+  if(netw<0) alerts.push({level:'danger',msg:`<strong>🔴 Net worth is negative (${fmt(netw)}).</strong> You owe more than you own. <em>Action: Dual focus — grow assets (savings, investments) while aggressively reducing liabilities. Track monthly to confirm the trend is improving.</em>`});
+  if(ta>0&&la/ta<0.1&&te>0) alerts.push({level:'warning',msg:`<strong>🟡 Less than 10% of your assets are liquid.</strong> Most of your wealth is locked in property or business equity you can't quickly access. <em>Action: Ensure liquid reserves cover at least 3 months of expenses before deploying cash into illiquid assets.</em>`});
+
+  // IMPROVEMENTS
+  if(savRate<20&&ti>0){
+    const gap=Math.max(0,(ti*0.2)-Math.max(0,cash));
+    improvements.push(`<strong>Boost savings rate from ${pct(savRate)} to 20%.</strong> That requires saving an additional ${fmt(gap)}/month. Try the "pay yourself first" rule — move savings out on payday before spending.`);
+  }
+  if(discExp>0&&ti>0){
+    const cut=discExp*0.3;
+    improvements.push(`<strong>Discretionary spending is ${fmt(discExp)}/month (${pct(discExp/ti*100)} of income).</strong> A 30% cut frees up ${fmt(cut)}/month — that is ${fmt(cut*12)}/year available for investment or debt reduction.`);
+  }
+  if(passiveInc.length===0) improvements.push(`<strong>No passive income detected.</strong> Start small — a money market fund (Sanlam, CIC, ICEA) at 10–13% p.a. on even KES 50,000 earns roughly KES 500/month passively. This compounds significantly over time.`);
+  if(liabilities.length>0&&highRateLoans.length===0) improvements.push(`<strong>Debt repayment strategy:</strong> With ${liabilities.length} loan(s), consider the avalanche method — pay minimums on all, throw any extra at the highest-rate loan first. This minimises total interest paid.`);
+  if(assets.filter(a=>a.cat==='Pension / NSSF').length===0) improvements.push(`<strong>No pension asset recorded.</strong> Ensure you are contributing to NSSF and ideally a supplementary pension or annuity. Pension contributions reduce taxable income and build long-term wealth.`);
+
+  // STRENGTHS
+  if(savRate>=20) strengths.push(`Savings rate of ${pct(savRate)} — above the 20% benchmark. You are building wealth.`);
+  if(months>=6) strengths.push(`Emergency fund covers ${Math.round(months)} months — strong financial resilience.`);
+  if(dti<=30&&tl>0) strengths.push(`Debt-to-income ratio of ${pct(dti)} — within the safe 30% threshold.`);
+  if(netw>0) strengths.push(`Positive net worth of ${fmt(netw)} — you own more than you owe.`);
+  if(incomes.length>=2) strengths.push(`${incomes.length} income streams — good diversification. Income concentration risk is lower.`);
+  if(passiveInc.length>0) strengths.push(`Passive income present (${passiveInc.map(i=>i.name).join(', ')}) — money working for you.`);
+  if(cash>0&&savRate>=20) strengths.push(`Surplus cashflow of ${fmt(cash)}/month — strong position to accelerate wealth building.`);
+
+  let html='';
+  if(alerts.length){
+    html+=`<div class="section-head"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f05a5a" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Risk alerts (${alerts.length})</div>`;
+    alerts.forEach(a=>{html+=`<div class="alert alert-${a.level}">${a.msg}</div>`;});
+  }
+  if(improvements.length){
+    html+=`<div class="section-head"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f0a832" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg> Where to improve (${improvements.length})</div>`;
+    improvements.forEach(imp=>{html+=`<div class="alert alert-warning">${imp}</div>`;});
+  }
+  if(strengths.length){
+    html+=`<div class="section-head"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2dd4a0" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg> What you are doing well (${strengths.length})</div>`;
+    strengths.forEach(s=>{html+=`<div class="alert alert-success">✓ ${s}</div>`;});
+  }
+  if(!alerts.length&&!improvements.length&&!strengths.length){
+    html=`<div class="alert alert-info">💡 Add more data to generate specific insights.</div>`;
+  }
+
+  // SUMMARY TABLE
+  html+=`<div style="margin-top:1.5rem">
+    <div class="section-head">📊 Summary snapshot</div>
+    <div class="list-card" style="padding:0.25rem 1.25rem">
+      ${row('Total assets', fmt(totA()), 'green')}
+      ${row('Total liabilities', fmt(totL()), 'red')}
+      ${row('Net worth', fmt(nw()), nw()>=0?'green':'red')}
+      ${row('Monthly income', fmt(ti), 'green')}
+      ${row('Monthly expenses', fmt(te), 'red')}
+      ${row('Monthly cashflow', fmt(cash), cash>=0?'green':'red')}
+      ${row('Annual cashflow', fmt(cash*12), cash>=0?'green':'red')}
+      ${row('Savings rate', pct(savRate), savRate>=20?'green':savRate>=10?'amber':'red')}
+      ${row('Debt-to-income', pct(dti), dti<=30?'green':dti<=43?'amber':'red')}
+      ${row('Emergency cover', Math.round(months)+' months', months>=6?'green':months>=3?'amber':'red')}
+    </div>
+  </div>`;
+
+  document.getElementById('insights-content').innerHTML=html;
+}
+
+function row(label, value, cls){
+  return `<div class="list-item"><span style="color:var(--text2);font-size:13px">${label}</span><span class="${cls}" style="font-weight:600;font-size:13px">${value}</span></div>`;
+}
+
+// ─── INIT ──────────────────────────────────────────────────
+function renderAll(){
+  renderAssets();renderLiabilities();renderIncome();renderExpenses();
+  renderOverview();renderHeaderNW();
+}
+load();
+renderAll();
+</script>
+</body>
+</html>
